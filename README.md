@@ -2,6 +2,7 @@
 
 A small Python project built from the supplied `lavisuals.ipynb` notebook. It visualizes:
 
+- 2D linear transformations with a deforming coordinate grid
 - 2D vector rotation with rotation matrices
 - Shear and rotation transformations on a letter `N`
 - Homogeneous-coordinate translation in 3D
@@ -21,6 +22,9 @@ Launch the interactive Streamlit app:
 ```bash
 streamlit run src/la_visualizer/app.py
 ```
+
+The app includes a transformation lab with matrix presets, custom 2 x 2 matrices,
+animated progress, basis vectors, determinant/eigenvalue readouts, and PNG export.
 
 Generate every notebook-inspired figure:
 
