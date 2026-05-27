@@ -149,8 +149,17 @@ def plot_rotation(
     return fig
 
 
-def plot_letter_n(transform: str = "original", angle_deg: float = 30.0) -> Figure:
-    """Plot the notebook letter N before or after a selected transformation."""
+def plot_letter_n(
+    transform: str = "original",
+    angle_deg: float = 30.0,
+    *,
+    custom_matrix: np.ndarray | None = None,
+) -> Figure:
+    """Plot the notebook letter N before or after a selected transformation.
+
+    When custom_matrix is provided it is used directly and transform/angle_deg
+    are ignored (except for the plot title).
+    """
     original = letter_n_points(closed=False)
     matrix_by_transform = {
         "original": np.eye(2),
@@ -158,18 +167,21 @@ def plot_letter_n(transform: str = "original", angle_deg: float = 30.0) -> Figur
         "shear-fixed-y": shear_fixed_y_matrix(angle_deg),
         "rotate": rotation_matrix(angle_deg),
         "shear-scaled-y": shear_scaled_y_matrix(angle_deg),
+        "custom": np.eye(2),
     }
     if transform not in matrix_by_transform:
         valid = ", ".join(sorted(matrix_by_transform))
         raise ValueError(f"unknown transform {transform!r}; choose one of: {valid}")
 
-    transformed = close_shape(matrix_by_transform[transform] @ original)
+    active_matrix = custom_matrix if custom_matrix is not None else matrix_by_transform[transform]
+    transformed = close_shape(active_matrix @ original)
     title_by_transform = {
         "original": "N",
         "shear-fixed-x": "Sheared with fixed lengths",
         "shear-fixed-y": "Sheared with fixed lengths",
         "rotate": "Rotated",
         "shear-scaled-y": "Sheared with increased lengths",
+        "custom": "Custom matrix A",
     }
 
     fig, ax = plt.subplots(figsize=(6, 6))

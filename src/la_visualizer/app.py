@@ -38,6 +38,7 @@ TRANSFORM_LABELS = {
     "shear-fixed-y": "Shear, fixed y",
     "rotate": "Rotate",
     "shear-scaled-y": "Shear, scaled y",
+    "custom": "Custom matrix A",
 }
 
 MATRIX_PRESETS = {
@@ -54,13 +55,20 @@ def format_array(array: np.ndarray) -> str:
     return np.array2string(array, precision=3, suppress_small=True)
 
 
-def matrix_for_transform(transform: str, angle_deg: float) -> np.ndarray:
+def matrix_for_transform(
+    transform: str,
+    angle_deg: float,
+    custom_matrix: np.ndarray | None = None,
+) -> np.ndarray:
+    if transform == "custom" and custom_matrix is not None:
+        return custom_matrix
     matrices = {
         "original": np.eye(2),
         "shear-fixed-x": shear_fixed_x_matrix(angle_deg),
         "shear-fixed-y": shear_fixed_y_matrix(angle_deg),
         "rotate": rotation_matrix(angle_deg),
         "shear-scaled-y": shear_scaled_y_matrix(angle_deg),
+        "custom": np.eye(2),
     }
     return matrices[transform]
 
@@ -306,17 +314,33 @@ def render_letter_n() -> None:
             format_func=TRANSFORM_LABELS.get,
             index=1,
         )
-        angle = st.slider("Angle", -75.0, 75.0, 30.0, 1.0)
+
+        custom_matrix: np.ndarray | None = None
+        if transform == "custom":
+            st.markdown("**Matrix A entries**")
+            st.caption("A = [[a, b], [c, d]]")
+            col1, col2 = st.columns(2)
+            with col1:
+                a = st.number_input("a (row 0, col 0)", value=1.0, step=0.1)
+                c = st.number_input("c (row 1, col 0)", value=0.0, step=0.1)
+            with col2:
+                b = st.number_input("b (row 0, col 1)", value=0.5, step=0.1)
+                d = st.number_input("d (row 1, col 1)", value=1.0, step=0.1)
+            custom_matrix = np.array([[a, b], [c, d]], dtype=float)
+            angle = 0.0
+        else:
+            angle = st.slider("Angle", -75.0, 75.0, 30.0, 1.0)
+
         show_original_points = st.checkbox("Show original points table", value=False)
 
-    matrix = matrix_for_transform(transform, angle)
+    matrix = matrix_for_transform(transform, angle, custom_matrix)
     with output:
-        fig = plot_letter_n(transform, angle)
+        fig = plot_letter_n(transform, angle, custom_matrix=custom_matrix)
         st.pyplot(fig, clear_figure=True)
 
     details, points = st.columns(2)
     with details:
-        st.markdown("##### Transformation matrix")
+        st.markdown("##### Transformation matrix A")
         show_matrix(TRANSFORM_LABELS[transform], matrix)
     with points:
         st.markdown("##### Shape summary")
