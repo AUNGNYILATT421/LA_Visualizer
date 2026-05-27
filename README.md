@@ -1,11 +1,27 @@
 # LA Visualizer
 
-A small Python project built from the supplied `lavisuals.ipynb` notebook. It visualizes:
+An interactive linear algebra visualizer built with Streamlit, inspired by
+the `lavisuals.ipynb` notebook.
 
-- 2D linear transformations with a deforming coordinate grid
-- 2D vector rotation with rotation matrices
-- Shear and rotation transformations on a letter `N`
-- Homogeneous-coordinate translation in 3D
+## Features
+
+The app has 10 interactive tabs, each tied to a core LA concept:
+
+| Tab                 | Concept                                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| Transformation Lab  | Apply any 2×2 matrix to a deforming grid, unit square, and letter N with an animated progress slider |
+| Vector Rotation     | Rotate a 2D vector by one or more angles, with rotation matrix and angle arc                         |
+| Span & Combinations | Visualize span lines and a parallelogram for a·v₁ + b·v₂                                             |
+| Determinant         | Side-by-side before/after showing area scaling; red tint when det < 0                                |
+| Dot Product         | Projection arrow, angle arc, and v·w = \|v\|\|w\|cosθ breakdown                                      |
+| Eigenvectors        | Eigenvector arrows before and after A, with span lines; notes when eigenvalues are complex           |
+| Change of Basis     | Same vector shown in the standard basis vs. a custom skewed basis grid                               |
+| Composition         | Three-panel grid: original → after B → after A(Bv)                                                   |
+| Letter N            | Shear/rotation/custom matrix A applied to the letter N shape                                         |
+| Homogeneous         | 3D plot of homogeneous-coordinate translation                                                        |
+
+The **Letter N** tab lets you pick a preset transformation (shear fixed-x/y, rotate, shear scaled-y)
+or select **Custom matrix A** to enter all four 2×2 entries manually.
 
 ## Setup
 
@@ -23,10 +39,7 @@ Launch the interactive Streamlit app:
 streamlit run src/la_visualizer/app.py
 ```
 
-The app includes a transformation lab with matrix presets, custom 2 x 2 matrices,
-animated progress, basis vectors, determinant/eigenvalue readouts, and PNG export.
-
-Generate every notebook-inspired figure:
+Generate every notebook-inspired figure to disk:
 
 ```bash
 la-visualizer all --output-dir outputs
@@ -40,7 +53,7 @@ la-visualizer letter-n --transform shear-fixed-x --angle 30 --output outputs/she
 la-visualizer homogeneous --translate 7 4 --output outputs/homogeneous.png
 ```
 
-Each command writes a PNG file. Add `--show` to open an interactive Matplotlib window.
+Add `--show` to open an interactive Matplotlib window instead of saving.
 
 ## Development
 
