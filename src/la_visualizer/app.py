@@ -13,9 +13,15 @@ import streamlit as st
 from matplotlib.figure import Figure
 
 from la_visualizer.plots import (
+    plot_change_of_basis,
+    plot_composition,
+    plot_determinant,
+    plot_dot_product,
+    plot_eigenvectors,
     plot_homogeneous_translation,
     plot_letter_n,
     plot_rotation,
+    plot_span_and_combinations,
 )
 import matplotlib.pyplot as plt
 
@@ -385,24 +391,328 @@ def render_homogeneous() -> None:
         )
 
 
+def render_span() -> None:
+    st.subheader("Linear Combinations & Span")
+    st.caption("Videos 1-2 — Vectors, linear combinations, span, and basis vectors")
+    controls, output = st.columns([0.34, 0.66], gap="large")
+
+    with controls:
+        st.markdown("**Vector v₁**")
+        v1x = st.number_input("v₁ x", value=2.0, step=0.5, key="span_v1x")
+        v1y = st.number_input("v₁ y", value=0.0, step=0.5, key="span_v1y")
+        st.markdown("**Vector v₂**")
+        v2x = st.number_input("v₂ x", value=0.0, step=0.5, key="span_v2x")
+        v2y = st.number_input("v₂ y", value=2.0, step=0.5, key="span_v2y")
+        st.markdown("**Linear combination  a·v₁ + b·v₂**")
+        a = st.slider("Scalar a", -3.0, 3.0, 1.0, 0.1, key="span_a")
+        b = st.slider("Scalar b", -3.0, 3.0, 1.0, 0.1, key="span_b")
+
+    with output:
+        fig = plot_span_and_combinations((v1x, v1y), (v2x, v2y), scalar1=a, scalar2=b)
+        st.pyplot(fig, clear_figure=True)
+
+    v1 = np.array([v1x, v1y])
+    v2 = np.array([v2x, v2y])
+    combo = a * v1 + b * v2
+    cross = float(v1[0] * v2[1] - v1[1] * v2[0])
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("##### Vectors")
+        st.code(f"v₁ = {format_array(v1)}\nv₂ = {format_array(v2)}", language="text")
+    with col2:
+        st.markdown("##### Linear combination")
+        st.code(
+            f"a={a:.2f}, b={b:.2f}\na·v₁ + b·v₂ = {format_array(combo)}",
+            language="text",
+        )
+    with col3:
+        st.markdown("##### Span")
+        if abs(cross) < 1e-9:
+            st.warning("Linearly dependent — span is a line (not all of ℝ²).")
+        else:
+            st.success("Linearly independent — span covers all of ℝ².")
+        st.metric("2D cross product v₁×v₂", f"{cross:.4f}")
+
+
+def render_determinant() -> None:
+    st.subheader("The Determinant")
+    st.caption("Video 6 — The determinant as signed area scaling")
+    controls, output = st.columns([0.34, 0.66], gap="large")
+
+    with controls:
+        preset = st.selectbox("Matrix preset", options=list(MATRIX_PRESETS), index=0, key="det_preset")
+        if preset == "Custom":
+            a = st.number_input("a", value=1.0, step=0.1, key="det_a")
+            b = st.number_input("b", value=0.0, step=0.1, key="det_b")
+            c = st.number_input("c", value=0.0, step=0.1, key="det_c")
+            d = st.number_input("d", value=1.0, step=0.1, key="det_d")
+            matrix = np.array([[a, b], [c, d]], dtype=float)
+        elif preset == "Rotation":
+            angle = st.slider("Rotation angle", -180.0, 180.0, 45.0, 1.0, key="det_angle")
+            matrix = rotation_matrix(angle)
+        else:
+            matrix = MATRIX_PRESETS[preset]
+
+    with output:
+        fig = plot_determinant(matrix)
+        st.pyplot(fig, clear_figure=True)
+
+    det = np.linalg.det(matrix)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("##### Matrix A")
+        show_matrix("A", matrix)
+    with col2:
+        st.markdown("##### Determinant")
+        st.metric("det(A)", f"{det:.4f}")
+        st.metric("Area scaling factor |det|", f"{abs(det):.4f}")
+    with col3:
+        st.markdown("##### What it means")
+        if abs(det) < 1e-9:
+            st.error("det = 0 — singular matrix. Space is squished to a lower dimension. No inverse exists.")
+        elif det < 0:
+            st.warning(f"det < 0 — orientation flipped (mirror image). Area scaled by {abs(det):.3f}×.")
+        else:
+            st.success(f"det > 0 — no orientation flip. Area scaled by {det:.3f}×.")
+
+
+def render_dot_product() -> None:
+    st.subheader("Dot Products & Duality")
+    st.caption("Video 9 — Dot product as projection, duality between vectors and linear maps")
+    controls, output = st.columns([0.34, 0.66], gap="large")
+
+    with controls:
+        st.markdown("**Vector v**")
+        vx = st.number_input("v x", value=3.0, step=0.5, key="dot_vx")
+        vy = st.number_input("v y", value=1.0, step=0.5, key="dot_vy")
+        st.markdown("**Vector w**")
+        wx = st.number_input("w x", value=1.0, step=0.5, key="dot_wx")
+        wy = st.number_input("w y", value=2.0, step=0.5, key="dot_wy")
+
+    with output:
+        fig = plot_dot_product((vx, vy), (wx, wy))
+        st.pyplot(fig, clear_figure=True)
+
+    v = np.array([vx, vy])
+    w = np.array([wx, wy])
+    dot = float(np.dot(v, w))
+    nv = np.linalg.norm(v)
+    nw = np.linalg.norm(w)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("##### Values")
+        st.code(
+            f"v = {format_array(v)}\nw = {format_array(w)}\nv · w = {dot:.4f}",
+            language="text",
+        )
+    with col2:
+        st.markdown("##### Geometric interpretation")
+        if nv > 1e-9 and nw > 1e-9:
+            cos_t = float(np.clip(dot / (nv * nw), -1.0, 1.0))
+            theta = np.degrees(np.arccos(cos_t))
+            proj = dot / nv
+            st.code(
+                f"|v| = {nv:.4f},  |w| = {nw:.4f}\n"
+                f"angle θ = {theta:.2f}°,  cos θ = {cos_t:.4f}\n"
+                f"proj of w onto v = {proj:.4f}",
+                language="text",
+            )
+        if abs(dot) < 1e-9:
+            st.info("v · w ≈ 0 — vectors are orthogonal (perpendicular).")
+        elif dot > 0:
+            st.success("v · w > 0 — vectors point in roughly the same direction.")
+        else:
+            st.warning("v · w < 0 — vectors point in roughly opposite directions.")
+
+
+def render_eigenvectors() -> None:
+    st.subheader("Eigenvectors & Eigenvalues")
+    st.caption("Videos 14-15 — Eigenvectors stay on their span; they only scale by λ")
+    controls, output = st.columns([0.34, 0.66], gap="large")
+
+    with controls:
+        preset = st.selectbox("Matrix preset", options=list(MATRIX_PRESETS), index=0, key="eig_preset")
+        if preset == "Custom":
+            a = st.number_input("a", value=3.0, step=0.1, key="eig_a")
+            b = st.number_input("b", value=1.0, step=0.1, key="eig_b")
+            c = st.number_input("c", value=0.0, step=0.1, key="eig_c")
+            d = st.number_input("d", value=2.0, step=0.1, key="eig_d")
+            matrix = np.array([[a, b], [c, d]], dtype=float)
+        elif preset == "Rotation":
+            angle = st.slider("Rotation angle", -180.0, 180.0, 45.0, 1.0, key="eig_angle")
+            matrix = rotation_matrix(angle)
+        else:
+            matrix = MATRIX_PRESETS[preset]
+
+    with output:
+        fig = plot_eigenvectors(matrix)
+        st.pyplot(fig, clear_figure=True)
+
+    eigenvalues, evecs = np.linalg.eig(matrix)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("##### Matrix A")
+        show_matrix("A", matrix)
+        st.markdown("##### Characteristic polynomial")
+        tr = np.trace(matrix)
+        det = np.linalg.det(matrix)
+        st.code(f"λ² - {tr:.3f}λ + {det:.3f} = 0", language="text")
+    with col2:
+        st.markdown("##### Eigendecomposition  A·v = λ·v")
+        rows = []
+        for i, lam in enumerate(eigenvalues):
+            ev = evecs[:, i]
+            lam_str = f"{lam.real:.4f}" + (f" + {lam.imag:.4f}i" if abs(lam.imag) > 1e-9 else "")
+            rows.append({
+                "eigenvalue λ": lam_str,
+                "eigenvector": f"[{ev[0].real:.3f}, {ev[1].real:.3f}]",
+                "complex?": "yes" if abs(lam.imag) > 1e-9 else "no",
+            })
+        st.dataframe(rows, hide_index=True, use_container_width=True)
+        all_complex = all(abs(lam.imag) > 1e-9 for lam in eigenvalues)
+        if all_complex:
+            st.info("All eigenvalues are complex — no real eigenvectors (pure rotation has none).")
+
+
+def render_change_of_basis() -> None:
+    st.subheader("Change of Basis")
+    st.caption("Video 13 — Same vector, different coordinate languages")
+    controls, output = st.columns([0.34, 0.66], gap="large")
+
+    with controls:
+        st.markdown("**New basis vectors (columns of B)**")
+        col1, col2 = st.columns(2)
+        with col1:
+            b1x = st.number_input("b₁ x", value=1.0, step=0.25, key="cob_b1x")
+            b1y = st.number_input("b₁ y", value=1.0, step=0.25, key="cob_b1y")
+        with col2:
+            b2x = st.number_input("b₂ x", value=-1.0, step=0.25, key="cob_b2x")
+            b2y = st.number_input("b₂ y", value=1.0, step=0.25, key="cob_b2y")
+        st.markdown("**Vector v (standard coordinates)**")
+        vx = st.number_input("v x", value=2.0, step=0.5, key="cob_vx")
+        vy = st.number_input("v y", value=1.0, step=0.5, key="cob_vy")
+
+    basis = np.array([[b1x, b2x], [b1y, b2y]], dtype=float)
+    v = np.array([vx, vy], dtype=float)
+
+    with output:
+        fig = plot_change_of_basis(basis, (vx, vy))
+        st.pyplot(fig, clear_figure=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("##### Basis matrix B = [b₁ | b₂]")
+        show_matrix("B", basis)
+    with col2:
+        st.markdown("##### Coordinate translation")
+        try:
+            coords_new = np.linalg.solve(basis, v)
+            st.code(
+                f"Standard coords:  {format_array(v)}\n"
+                f"In new basis:     {format_array(coords_new)}\n\n"
+                f"Verify: B @ coords_new\n= {format_array(basis @ coords_new)}",
+                language="text",
+            )
+        except np.linalg.LinAlgError:
+            st.error("Basis vectors are linearly dependent — not a valid basis.")
+
+
+def render_composition() -> None:
+    st.subheader("Matrix Multiplication as Composition")
+    st.caption("Video 4 — Applying B first, then A, equals the single matrix A @ B")
+    st.info("Read right to left: (AB)v means apply B to v first, then apply A to the result.")
+
+    col_b, col_a = st.columns(2)
+    with col_b:
+        st.markdown("**Matrix B** (applied first)")
+        preset_b = st.selectbox("B preset", options=list(MATRIX_PRESETS), index=1, key="comp_b_preset")
+        if preset_b == "Custom":
+            mat_b = np.array([
+                [st.number_input("B: a", value=1.0, step=0.1, key="comp_b11"),
+                 st.number_input("B: b", value=0.0, step=0.1, key="comp_b12")],
+                [st.number_input("B: c", value=0.0, step=0.1, key="comp_b21"),
+                 st.number_input("B: d", value=1.0, step=0.1, key="comp_b22")],
+            ], dtype=float)
+        elif preset_b == "Rotation":
+            angle_b = st.slider("B angle", -180.0, 180.0, 45.0, 1.0, key="comp_angle_b")
+            mat_b = rotation_matrix(angle_b)
+        else:
+            mat_b = MATRIX_PRESETS[preset_b]
+
+    with col_a:
+        st.markdown("**Matrix A** (applied second)")
+        preset_a = st.selectbox("A preset", options=list(MATRIX_PRESETS), index=0, key="comp_a_preset")
+        if preset_a == "Custom":
+            mat_a = np.array([
+                [st.number_input("A: a", value=1.0, step=0.1, key="comp_a11"),
+                 st.number_input("A: b", value=0.0, step=0.1, key="comp_a12")],
+                [st.number_input("A: c", value=0.0, step=0.1, key="comp_a21"),
+                 st.number_input("A: d", value=1.0, step=0.1, key="comp_a22")],
+            ], dtype=float)
+        elif preset_a == "Rotation":
+            angle_a = st.slider("A angle", -180.0, 180.0, 90.0, 1.0, key="comp_angle_a")
+            mat_a = rotation_matrix(angle_a)
+        else:
+            mat_a = MATRIX_PRESETS[preset_a]
+
+    fig = plot_composition(mat_a, mat_b)
+    st.pyplot(fig, clear_figure=True)
+
+    ab = mat_a @ mat_b
+    mc, ma, mb = st.columns(3)
+    with mb:
+        show_matrix("B  (first)", mat_b)
+    with ma:
+        show_matrix("A  (second)", mat_a)
+    with mc:
+        show_matrix("A @ B  (composed)", ab)
+    st.caption(
+        f"det(A)={np.linalg.det(mat_a):.3f}  ×  det(B)={np.linalg.det(mat_b):.3f}"
+        f"  =  det(AB)={np.linalg.det(ab):.3f}  — determinants multiply!"
+    )
+
+
 def main() -> None:
     st.set_page_config(
         page_title="LA Visualizer",
         layout="wide",
     )
     st.title("LA Visualizer")
-    st.caption("Interactive matrix visuals inspired by geometric linear algebra.")
-
-    tab_lab, tab_rotation, tab_letter_n, tab_homogeneous = st.tabs(
-        ["Transformation lab", "Vector rotation", "Letter N", "Homogeneous translation"]
+    st.caption(
+        "Interactive linear algebra visuals"
     )
-    with tab_lab:
+
+    tabs = st.tabs([
+        "Transformation Lab",   # videos 3, 5
+        "Vector Rotation",      # video 1 (rotation)
+        "Span & Combinations",  # videos 1, 2
+        "Determinant",          # video 6
+        "Dot Product",          # video 9
+        "Eigenvectors",         # videos 14-15
+        "Change of Basis",      # video 13
+        "Composition",          # video 4
+        "Letter N",             # video 3
+        "Homogeneous",          # bonus
+    ])
+    with tabs[0]:
         render_transform_lab()
-    with tab_rotation:
+    with tabs[1]:
         render_rotation()
-    with tab_letter_n:
+    with tabs[2]:
+        render_span()
+    with tabs[3]:
+        render_determinant()
+    with tabs[4]:
+        render_dot_product()
+    with tabs[5]:
+        render_eigenvectors()
+    with tabs[6]:
+        render_change_of_basis()
+    with tabs[7]:
+        render_composition()
+    with tabs[8]:
         render_letter_n()
-    with tab_homogeneous:
+    with tabs[9]:
         render_homogeneous()
 
 
